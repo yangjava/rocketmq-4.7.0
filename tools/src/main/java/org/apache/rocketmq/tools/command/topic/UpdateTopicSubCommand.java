@@ -30,6 +30,7 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+// 指令 updateTopic 类路径 com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand
 public class UpdateTopicSubCommand implements SubCommand {
 
     @Override
@@ -46,15 +47,18 @@ public class UpdateTopicSubCommand implements SubCommand {
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
+        // -b   如果-c为空，则必填 broker 地址，表示topic 建在该broker
         Option opt = new Option("b", "brokerAddr", true, "create topic to which broker");
         optionGroup.addOption(opt);
 
+        // -c 如果-b为空，则必填 cluster 名称，表示topic 建在该集群（集群可通过clusterList 查询）
         opt = new Option("c", "clusterName", true, "create topic to which cluster");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
 
+        // -t  必填 topic 名称（名称只能使用字符 ^[a-zA-Z0-9_-]+$ ）
         opt = new Option("t", "topic", true, "topic name");
         opt.setRequired(true);
         options.addOption(opt);

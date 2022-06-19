@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.client.producer;
-
+// 本地事务消息状态
 public enum LocalTransactionState {
+    // 提交状态
     COMMIT_MESSAGE,
+    // 回滚状态
     ROLLBACK_MESSAGE,
+    // 未知状态
     UNKNOW,
 }

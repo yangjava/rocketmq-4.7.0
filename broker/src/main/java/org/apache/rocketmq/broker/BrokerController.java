@@ -1130,13 +1130,16 @@ public class BrokerController {
     public Map<Class, AccessValidator> getAccessValidatorMap() {
         return accessValidatorMap;
     }
-
+    // Broker 在启动的时候，会判断Broker的角色是什么，当Broker的角色是Slave时，会启动定时任务开始进行同步元数据。
+    // handleSlaveSynchronize方法判断Broker是否是Slave，如果是Slave则启动定时任务，每10秒同步元数据信息。
     private void handleSlaveSynchronize(BrokerRole role) {
+        //如果是Slave
         if (role == BrokerRole.SLAVE) {
             if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
             }
             this.slaveSynchronize.setMasterAddr(null);
+            //启动定时任务同步元数据
             slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {

@@ -979,22 +979,31 @@ public class CommitLog {
             }
         }
     }
-
+    // RocketMQ发送消息后，需要将消息进行落盘保存，然后进行消息的主从同步。
     public void handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
+        // 如果是master 同步
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
+            // 获取数据同步服务
             HAService service = this.defaultMessageStore.getHaService();
+            // 消息存储成功
             if (messageExt.isWaitStoreMsgOK()) {
                 // Determine whether to wait
+                // isSlaveOK判断Slave从服务是否是良好的
                 if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
+                    // 创建主从同步提交请求
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
+                    // 交给GroupTransferService处理，该类判断主从同步是否完成
                     service.putRequest(request);
+                    // 唤醒全部的 Slave 同步
                     service.getWaitNotifyObject().wakeupAll();
                     PutMessageStatus replicaStatus = null;
                     try {
+                        // 复制的状态，等待同步的结果
                         replicaStatus = request.future().get(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout(),
                                 TimeUnit.MILLISECONDS);
                     } catch (InterruptedException | ExecutionException | TimeoutException e) {
                     }
+                    // 如果同步不成功，打印错误日志
                     if (replicaStatus != PutMessageStatus.PUT_OK) {
                         log.error("do sync transfer other node, wait return, but failed, topic: " + messageExt.getTopic() + " tags: "
                             + messageExt.getTags() + " client address: " + messageExt.getBornHostNameString());
@@ -1004,6 +1013,7 @@ public class CommitLog {
                 // Slave problem
                 else {
                     // Tell the producer, slave not available
+                    // 告诉生产者，slave不可用
                     putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
                 }
             }

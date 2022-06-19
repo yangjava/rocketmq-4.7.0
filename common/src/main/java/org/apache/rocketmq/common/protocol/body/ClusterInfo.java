@@ -23,9 +23,11 @@ import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
+// Broker 集群信息
 public class ClusterInfo extends RemotingSerializable {
+    // 一个断路器名brokerName与断路器数据BrokerData的表
     private HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    // 一个集群名clusterName与断路器名brokerName的表
     private HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
 
     public HashMap<String, BrokerData> getBrokerAddrTable() {

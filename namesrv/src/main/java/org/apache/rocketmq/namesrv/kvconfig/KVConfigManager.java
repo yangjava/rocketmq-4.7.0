@@ -28,36 +28,44 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.namesrv.NamesrvController;
+// KV config管理器
 public class KVConfigManager {
+    // 代码入口首先是日志工具
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
     private final NamesrvController namesrvController;
-
+    // lock 是一个读写锁，用来控制并发
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    // configTable 就是在内存中记录住的kv配置,第一级key为NameSpace
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
         new HashMap<String, HashMap<String, String>>();
-
+    // 传入一个NamesrvController，目的是为了后面获取到kvConfig的配置路径
     public KVConfigManager(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
     }
 
+    // 加载配置文件。读取文件名为"user.home/namesrv/kvConfig.json"(其中user.home为用户的目录)，
+    // 然后将读取的文件内容转为KVConfigSerializeWrapper类，最后将所有的key-value保存在map中
     public void load() {
         String content = null;
         try {
+            // 加载配置文件，读取到内存的content
             content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
         } catch (IOException e) {
             log.warn("Load KV config table exception", e);
         }
         if (content != null) {
+            // 根据kvConfigPath得到文件内容，以json格式解析得到KVConfigSerializeWrapper对象
             KVConfigSerializeWrapper kvConfigSerializeWrapper =
                 KVConfigSerializeWrapper.fromJson(content, KVConfigSerializeWrapper.class);
             if (null != kvConfigSerializeWrapper) {
+                // 最后将所有的key-value保存在map中
                 this.configTable.putAll(kvConfigSerializeWrapper.getConfigTable());
                 log.info("load KV config table OK");
             }
         }
     }
-
+    // 添加一条记录，放入configTable中，namespace对应一级key，key对应二级，然后将configTable进行持久化到文件
     public void putKVConfig(final String namespace, final String key, final String value) {
         try {
             this.lock.writeLock().lockInterruptibly();
@@ -86,7 +94,7 @@ public class KVConfigManager {
 
         this.persist();
     }
-
+    // 持久化
     public void persist() {
         try {
             this.lock.readLock().lockInterruptibly();

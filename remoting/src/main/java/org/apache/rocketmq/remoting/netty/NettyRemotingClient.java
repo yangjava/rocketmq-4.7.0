@@ -67,7 +67,7 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
+// NettyRemotingClient类继承了NettyRemotingAbstract方法，并且实现了RemotingClient接口。
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
@@ -149,6 +149,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
+        //创建默认的事件执行组
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
             nettyClientConfig.getClientWorkerThreads(),
             new ThreadFactory() {
@@ -160,16 +161,16 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     return new Thread(r, "NettyClientWorkerThread_" + this.threadIndex.incrementAndGet());
                 }
             });
-
+        // 客户端启动器
         Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
-            .option(ChannelOption.TCP_NODELAY, true)
-            .option(ChannelOption.SO_KEEPALIVE, false)
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())
-            .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize())
-            .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())
+            .option(ChannelOption.TCP_NODELAY, true) // tcp无延迟
+            .option(ChannelOption.SO_KEEPALIVE, false) //不保持长链接
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())  //连接超时时间
+            .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize()) //发送缓存大小
+            .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize()) //接收缓冲大小
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
-                public void initChannel(SocketChannel ch) throws Exception {
+                public void initChannel(SocketChannel ch) throws Exception {   //处理器
                     ChannelPipeline pipeline = ch.pipeline();
                     if (nettyClientConfig.isUseTLS()) {
                         if (null != sslContext) {
@@ -181,14 +182,17 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     }
                     pipeline.addLast(
                         defaultEventExecutorGroup,
-                        new NettyEncoder(),
-                        new NettyDecoder(),
+                        new NettyEncoder(), //编码
+                        new NettyDecoder(), //解码
+                        // 空闲处理器
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
+                        // 连接管理处理器
                         new NettyConnectManageHandler(),
+                        // netty客户端处理器
                         new NettyClientHandler());
                 }
             });
-
+        // 定时任务扫描响应
         this.timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -199,7 +203,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             }
         }, 1000 * 3, 1000);
-
+        // 启动通道事件处理监听器
         if (this.channelEventListener != null) {
             this.nettyEventExecutor.start();
         }

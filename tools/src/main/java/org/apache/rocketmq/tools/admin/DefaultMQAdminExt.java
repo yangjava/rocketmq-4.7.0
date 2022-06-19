@@ -58,7 +58,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
-
+// 封装了⼀些mqadmin命令实现
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private String adminExtGroup = "admin_ext_group";
@@ -244,19 +244,19 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         InterruptedException, MQBrokerException {
         return defaultMQAdminExtImpl.examineConsumeStats(consumerGroup, topic);
     }
-
+    // 检查broker集群信息
     @Override
     public ClusterInfo examineBrokerClusterInfo() throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
         RemotingSendRequestException, MQBrokerException {
         return defaultMQAdminExtImpl.examineBrokerClusterInfo();
     }
-
+    // 检查topic路由信息
     @Override
     public TopicRouteData examineTopicRouteInfo(
         String topic) throws RemotingException, MQClientException, InterruptedException {
         return defaultMQAdminExtImpl.examineTopicRouteInfo(topic);
     }
-
+    // 检查消费者连接信息
     @Override
     public ConsumerConnection examineConsumerConnectionInfo(
         String consumerGroup) throws InterruptedException, MQBrokerException,

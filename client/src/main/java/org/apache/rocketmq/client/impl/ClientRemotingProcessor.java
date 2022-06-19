@@ -95,27 +95,33 @@ public class ClientRemotingProcessor extends AsyncNettyRequestProcessor implemen
     public boolean rejectRequest() {
         return false;
     }
-
+    // 生产者收到Broker的回查本地事务的请求，会将请求交给上述的checkTransactionState方法处理。当接收到请求时，首先解析本地事务请求头，通过生产者组group找到生产者producer，然后执行生产者producer的checkTransactionState方法回查本地事务的状态
     public RemotingCommand checkTransactionState(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
+        // 检查事务状态请求头
         final CheckTransactionStateRequestHeader requestHeader =
             (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
+        // 解码消息体
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer);
         if (messageExt != null) {
             if (StringUtils.isNotEmpty(this.mqClientFactory.getClientConfig().getNamespace())) {
                 messageExt.setTopic(NamespaceUtil
                     .withoutNamespace(messageExt.getTopic(), this.mqClientFactory.getClientConfig().getNamespace()));
             }
+            //事务id
             String transactionId = messageExt.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
             if (null != transactionId && !"".equals(transactionId)) {
                 messageExt.setTransactionId(transactionId);
             }
             final String group = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (group != null) {
+                //通过group选择内部生产者
                 MQProducerInner producer = this.mqClientFactory.selectProducer(group);
                 if (producer != null) {
+                    //连接地址
                     final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                    //会查本地事务状态
                     producer.checkTransactionState(addr, messageExt, requestHeader);
                 } else {
                     log.debug("checkTransactionState, pick producer by group[{}] failed", group);

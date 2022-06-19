@@ -64,8 +64,10 @@ public class Broker2Client {
         final Channel channel,
         final CheckTransactionStateRequestHeader requestHeader,
         final MessageExt messageExt) throws Exception {
+        // 检查事务状态请求头
         RemotingCommand request =
             RemotingCommand.createRequestCommand(RequestCode.CHECK_TRANSACTION_STATE, requestHeader);
+        //解码消息体
         request.setBody(MessageDecoder.encode(messageExt, false));
         try {
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 10);

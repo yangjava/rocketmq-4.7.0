@@ -322,7 +322,7 @@ public class BrokerOuterAPI {
         }
         return changedList;
     }
-
+    // getAllTopicConfig方法是从通过网络从master获取所有的topic信息，客户端和服务端之间的通信在《RocketMQ的通信机制设计源码分析》中已经分析过，具体细节可以参考该文章。客户端通过请求码将消息发送给服务端，服务端接收到消息，通过请求码将请求交给不同处理器处理，然后将结果返回。
     public TopicConfigSerializeWrapper getAllTopicConfig(
         final String addr) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, InterruptedException, MQBrokerException {

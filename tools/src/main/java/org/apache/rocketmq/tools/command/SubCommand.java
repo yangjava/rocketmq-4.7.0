@@ -20,6 +20,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.remoting.RPCHook;
 
+// 把命令行的操作转换成java类，基于commons-cli 来做的一些封装
 public interface SubCommand {
     String commandName();
 

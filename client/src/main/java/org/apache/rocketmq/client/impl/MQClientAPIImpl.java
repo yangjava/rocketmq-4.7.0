@@ -1250,6 +1250,7 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    // 获取消费者连接列表
     public ConsumerConnection getConsumerConnectionList(final String addr, final String consumerGroup,
         final long timeoutMillis)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,

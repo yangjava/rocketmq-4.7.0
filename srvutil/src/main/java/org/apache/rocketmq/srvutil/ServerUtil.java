@@ -25,7 +25,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 public class ServerUtil {
-
+    // 构造org.apache.commons.cli.Options,并添加-h -n参数，-h参数是打印帮助信息，-n参数是指定namesrvAddr
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("h", "help", false, "Print help");
         opt.setRequired(false);

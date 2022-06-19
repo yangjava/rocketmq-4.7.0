@@ -16,12 +16,17 @@
  */
 
 package org.apache.rocketmq.tools.admin.api;
-
+//
 public enum TrackType {
+    // 代表该消息已经被消费
     CONSUMED,
+    // 消费了，但是被过滤了，一般是被tag过滤了
     CONSUMED_BUT_FILTERED,
     PULL,
+    // 还没被消费
     NOT_CONSUME_YET,
+    // 代表该Consumer没有运行
     NOT_ONLINE,
+    // 未知
     UNKNOWN
 }

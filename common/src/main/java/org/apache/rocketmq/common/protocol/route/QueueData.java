@@ -21,10 +21,15 @@
 package org.apache.rocketmq.common.protocol.route;
 
 public class QueueData implements Comparable<QueueData> {
+    // 队列所属的Broker名称
     private String brokerName;
+    // 读队列数量 默认：16
     private int readQueueNums;
+    // 写队列数量 默认：16
     private int writeQueueNums;
+    // Topic的读写权限(2是写 4是读 6是读写)
     private int perm;
+    // 同步复制还是异步复制--对应TopicConfig.topicSysFlag
     private int topicSynFlag;
 
     public int getReadQueueNums() {

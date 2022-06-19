@@ -57,20 +57,26 @@ public abstract class AbstractTransactionalMessageCheckListener {
     public AbstractTransactionalMessageCheckListener(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
-
+    // sendCheckMessage方法首先构建回查事务状态请求头，将消息的topic和queueId替换成真实的topic和queueId，最后调用checkProducerTransactionState给生产者发送回查请求，请求码为CHECK_TRANSACTION_STATE（39）。
     public void sendCheckMessage(MessageExt msgExt) throws Exception {
+        //回查事务状态请求头
         CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
         checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
         checkTransactionStateRequestHeader.setOffsetMsgId(msgExt.getMsgId());
         checkTransactionStateRequestHeader.setMsgId(msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
         checkTransactionStateRequestHeader.setTransactionId(checkTransactionStateRequestHeader.getMsgId());
         checkTransactionStateRequestHeader.setTranStateTableOffset(msgExt.getQueueOffset());
+        //替换成真实的topic和queueId
         msgExt.setTopic(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
+        //REAL_QID
         msgExt.setQueueId(Integer.parseInt(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
         msgExt.setStoreSize(0);
+        //PGROUP
         String groupId = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
+        //获取可用的连接
         Channel channel = brokerController.getProducerManager().getAvaliableChannel(groupId);
         if (channel != null) {
+            //发送回查请求
             brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
         } else {
             LOGGER.warn("Check transaction failed, channel is null. groupId={}", groupId);

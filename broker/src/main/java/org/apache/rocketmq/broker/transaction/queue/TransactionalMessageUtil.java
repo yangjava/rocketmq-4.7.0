@@ -27,7 +27,8 @@ public class TransactionalMessageUtil {
     public static String buildOpTopic() {
         return MixAll.RMQ_SYS_TRANS_OP_HALF_TOPIC;
     }
-
+    // buildHalfTopic方法就是获取RMQ_SYS_TRANS_HALF_TOPIC。
+    // 上述将半消息的topic替换为RMQ_SYS_TRANS_HALF_TOPIC，因为消费者没有订阅RMQ_SYS_TRANS_HALF_TOPIC，所以半消息对消费者不可见，这就是半消息对消费者不可见的源码分析。
     public static String buildHalfTopic() {
         return MixAll.RMQ_SYS_TRANS_HALF_TOPIC;
     }

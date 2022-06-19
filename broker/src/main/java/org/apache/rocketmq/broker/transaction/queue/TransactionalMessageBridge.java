@@ -199,13 +199,17 @@ public class TransactionalMessageBridge {
     public CompletableFuture<PutMessageResult> asyncPutHalfMessage(MessageExtBrokerInner messageInner) {
         return store.asyncPutMessage(parseHalfMessageInner(messageInner));
     }
-
+    // 当Broker接收到半消息以后，将会解析半消息。如果消息为prepare 消息， 则执行prepareMessage 方法，否则走普通消息的存储流程。
+    // parseHalfMessageInner将消息的真实topic和真实的QueueId保存在Property属性中，然后重新设置topic和QueueId，topic设置为RMQ_SYS_TRANS_HALF_TOPIC，QueueId设置为0，buildHalfTopic方法就是获取RMQ_SYS_TRANS_HALF_TOPIC
     private MessageExtBrokerInner parseHalfMessageInner(MessageExtBrokerInner msgInner) {
+        //REAL_TOPIC 真实的topic
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC, msgInner.getTopic());
+        //REAL_QID 真实的QueueId
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID,
             String.valueOf(msgInner.getQueueId()));
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
+        //重新设置topic和QueueId
         msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());
         msgInner.setQueueId(0);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));

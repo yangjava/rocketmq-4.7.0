@@ -16,11 +16,12 @@
  */
 
 package org.apache.rocketmq.remoting;
-
+// 首先通信的两端分为客户端和服务端，客户端和服务端都有启动、关闭的方法，为了在处理请求之前和返回响应之后做一些事情，采用钩子机制来拓展，所以还需要一个注册钩子的方法，定义的客户端和服务端的公共接口
 public interface RemotingService {
+    //启动
     void start();
-
+    //关闭
     void shutdown();
-
+    //注册钩子
     void registerRPCHook(RPCHook rpcHook);
 }
