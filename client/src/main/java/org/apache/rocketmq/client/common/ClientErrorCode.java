@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.client.common;
 
+// 客户端错误码
 public class ClientErrorCode {
     public static final int CONNECT_BROKER_EXCEPTION = 10001;
     public static final int ACCESS_BROKER_TIMEOUT = 10002;

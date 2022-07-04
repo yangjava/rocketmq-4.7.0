@@ -20,8 +20,11 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+
+//  IndexHeader 头部，包含40 个字节，记录该IndexFile 的统计信息。
 public class IndexHeader {
     public static final int INDEX_HEADER_SIZE = 40;
+
     private static int beginTimestampIndex = 0;
     private static int endTimestampIndex = 8;
     private static int beginPhyoffsetIndex = 16;
@@ -29,12 +32,17 @@ public class IndexHeader {
     private static int hashSlotcountIndex = 32;
     private static int indexCountIndex = 36;
     private final ByteBuffer byteBuffer;
+    // 该索引文件中包含消息的最小存储时间。
     private AtomicLong beginTimestamp = new AtomicLong(0);
+    // 该索引文件中包含消息的最大存储时间。
     private AtomicLong endTimestamp = new AtomicLong(0);
+    // 该索引文件中包含消息的最小物理偏移量(commitlog 文件偏移量)。
     private AtomicLong beginPhyOffset = new AtomicLong(0);
+    // 该索引文件中包含消息的最大物理偏移量(commitlog 文件偏移量)
     private AtomicLong endPhyOffset = new AtomicLong(0);
+    // hashslot 个数，并不是hash 槽使用的个数，在这里意义不大
     private AtomicInteger hashSlotCount = new AtomicInteger(0);
-
+    // Index 条目列表当前已使用的个数， Index 条目在Index 条目列表中按顺序存储
     private AtomicInteger indexCount = new AtomicInteger(1);
 
     public IndexHeader(final ByteBuffer byteBuffer) {

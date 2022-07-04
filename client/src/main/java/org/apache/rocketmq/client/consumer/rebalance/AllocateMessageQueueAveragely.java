@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 /**
  * Average Hashing queue algorithm
  */
+// 平均负载策略，将消息队列平均分配给每一个消息者。假设一个topic有8个消息队列，有3个消息者A、B、C，那么采用该负载策略，那么A首先分配3个消息队列，然后B也分配3个消息队列，最后C分配2个消息队列。
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();
 
@@ -51,12 +52,18 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
             return result;
         }
 
+        // 获取当前客户端id在所有消费者里面的位置
         int index = cidAll.indexOf(currentCID);
+        // 看是否能够均分
         int mod = mqAll.size() % cidAll.size();
+        // 如果消息队列的数量小于等于消费者的数量。一个消费者最多只能分到一个消息消息队列
+        // 否则，如果不能均分且index小于mode，均分以后再加上一个
         int averageSize =
             mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
                 + 1 : mqAll.size() / cidAll.size());
+        // 开始的位置
         int startIndex = (mod > 0 && index < mod) ? index * averageSize : index * averageSize + mod;
+        // 被分配的消息队列的范围上限
         int range = Math.min(averageSize, mqAll.size() - startIndex);
         for (int i = 0; i < range; i++) {
             result.add(mqAll.get((startIndex + i) % mqAll.size()));

@@ -65,30 +65,41 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 public class DefaultMessageStore implements MessageStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    // 消息存储配置属性。
     private final MessageStoreConfig messageStoreConfig;
     // CommitLog
+    // CommitLog 文件的存储实现类。
     private final CommitLog commitLog;
 
+    // 消息队列存储缓存表，按消息主题分组。
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
+    // 消息队列文件ConsumeQueue刷盘线程。
     private final FlushConsumeQueueService flushConsumeQueueService;
 
+    // 清除CommitLog 文件服务。
     private final CleanCommitLogService cleanCommitLogService;
 
+    // 清除ConsumeQueue 文件服务。
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
+    // 索引文件实现类。
     private final IndexService indexService;
 
+    // MappedFile 分配服务
     private final AllocateMappedFileService allocateMappedFileService;
 
+    // CommitLog 消息分发，根据CommitLog文件构建ConsumeQueue 、IndexFile 文件。
     private final ReputMessageService reputMessageService;
 
+    // 存储HA 机制。
     private final HAService haService;
 
     private final ScheduleMessageService scheduleMessageService;
 
     private final StoreStatsService storeStatsService;
 
+    // 消息堆内存缓存。
     private final TransientStorePool transientStorePool;
 
     private final RunningFlags runningFlags = new RunningFlags();
@@ -97,15 +108,19 @@ public class DefaultMessageStore implements MessageStore {
     private final ScheduledExecutorService scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
     private final BrokerStatsManager brokerStatsManager;
+    // 消息拉取长轮询模式消息达到监听器。
     private final MessageArrivingListener messageArrivingListener;
+    // Broker 配置属性。
     private final BrokerConfig brokerConfig;
 
     private volatile boolean shutdown = true;
 
+    // 文件刷盘检测点。
     private StoreCheckpoint storeCheckpoint;
 
     private AtomicLong printTimes = new AtomicLong(0);
 
+    // CommitLog 文件转发请求。DefaultMessageStore中存储了一个dispatcherList，其中存放了几个CommitLogDispatcher对象，它们都是用来监听CommitLog中新消息存储的。
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
     private RandomAccessFile lockFile;
@@ -120,24 +135,32 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.brokerStatsManager = brokerStatsManager;
+        // 初始化分配MappedFile文件服务
         this.allocateMappedFileService = new AllocateMappedFileService(this);
+        // 初始化CommitLog存储服务
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             this.commitLog = new DLedgerCommitLog(this);
         } else {
             this.commitLog = new CommitLog(this);
         }
+        // 初始化消费队列信息
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
-
+        // 初始化 队列文件ConsumeQueue刷盘服务
         this.flushConsumeQueueService = new FlushConsumeQueueService();
+        // 初始化  清理CommitLog文件服务
         this.cleanCommitLogService = new CleanCommitLogService();
+        // 初始化  清理ConsumeQueue文件服务
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
+        // 初始化  队列索引服务
         this.storeStatsService = new StoreStatsService();
+        // 初始化  高可用服务，主从复制
         this.indexService = new IndexService(this);
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             this.haService = new HAService(this);
         } else {
             this.haService = null;
         }
+        // 初始化  根据CommitLog文件构建ConsumeQueue、IndexFile文件服务
         this.reputMessageService = new ReputMessageService();
 
         this.scheduleMessageService = new ScheduleMessageService(this);
@@ -148,8 +171,10 @@ public class DefaultMessageStore implements MessageStore {
             this.transientStorePool.init();
         }
 
+        // 启动分配MappedFile文件线程
         this.allocateMappedFileService.start();
 
+        // 启动队列索引文件服务， 空实现
         this.indexService.start();
 
         this.dispatcherList = new LinkedList<>();

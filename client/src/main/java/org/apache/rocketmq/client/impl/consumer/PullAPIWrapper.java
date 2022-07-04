@@ -69,13 +69,16 @@ public class PullAPIWrapper {
 
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
         final SubscriptionData subscriptionData) {
+        // 获取消息拉取结果 pullResult
         PullResultExt pullResultExt = (PullResultExt) pullResult;
 
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
+        // 如果有消息
         if (PullStatus.FOUND == pullResult.getPullStatus()) {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
             List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
 
+            // 通过Tag过滤消息
             List<MessageExt> msgListFilterAgain = msgList;
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
@@ -140,6 +143,7 @@ public class PullAPIWrapper {
         }
     }
 
+    // 进行消息拉取操作
     public PullResult pullKernelImpl(
         final MessageQueue mq,
         final String subExpression,
@@ -154,9 +158,11 @@ public class PullAPIWrapper {
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        // 获取Broker地址
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                 this.recalculatePullFromWhichNode(mq), false);
+        // 如果Broker为空，重新获取
         if (null == findBrokerResult) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
@@ -167,6 +173,7 @@ public class PullAPIWrapper {
         if (findBrokerResult != null) {
             {
                 // check version
+                // 校验版本号
                 if (!ExpressionType.isTagType(expressionType)
                     && findBrokerResult.getBrokerVersion() < MQVersion.Version.V4_1_0_SNAPSHOT.ordinal()) {
                     throw new MQClientException("The broker[" + mq.getBrokerName() + ", "
@@ -179,13 +186,16 @@ public class PullAPIWrapper {
                 sysFlagInner = PullSysFlag.clearCommitOffsetFlag(sysFlagInner);
             }
 
+            // 组装拉取消息头
             PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
             requestHeader.setConsumerGroup(this.consumerGroup);
             requestHeader.setTopic(mq.getTopic());
             requestHeader.setQueueId(mq.getQueueId());
+            // QueueOffset
             requestHeader.setQueueOffset(offset);
             requestHeader.setMaxMsgNums(maxNums);
             requestHeader.setSysFlag(sysFlagInner);
+            // CommitOffset
             requestHeader.setCommitOffset(commitOffset);
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
             requestHeader.setSubscription(subExpression);

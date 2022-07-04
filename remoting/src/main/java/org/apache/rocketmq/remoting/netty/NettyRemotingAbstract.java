@@ -493,25 +493,30 @@ public abstract class NettyRemotingAbstract {
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         long beginStartTime = System.currentTimeMillis();
         final int opaque = request.getOpaque();
+        // 设置信号量
         boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
         if (acquired) {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
             long costTime = System.currentTimeMillis() - beginStartTime;
+            // 超时，抛出异常
             if (timeoutMillis < costTime) {
                 once.release();
                 throw new RemotingTimeoutException("invokeAsyncImpl call timeout");
             }
 
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis - costTime, invokeCallback, once);
+            // 将响应Future放入响应表中
             this.responseTable.put(opaque, responseFuture);
             try {
                 channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture f) throws Exception {
+                        // 发送成功，则设置发送成功标志
                         if (f.isSuccess()) {
                             responseFuture.setSendRequestOK(true);
                             return;
                         }
+                        // 失败，从响应表中删除该请求-响应表之间的关系
                         requestFail(opaque);
                         log.warn("send a request command to channel <{}> failed.", RemotingHelper.parseChannelRemoteAddr(channel));
                     }
@@ -522,6 +527,8 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
             }
         } else {
+            // 没有获取到信号量
+            // 超时
             if (timeoutMillis <= 0) {
                 throw new RemotingTooMuchRequestException("invokeAsyncImpl invoke too fast");
             } else {

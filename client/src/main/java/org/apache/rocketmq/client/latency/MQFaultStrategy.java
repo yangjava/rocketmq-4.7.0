@@ -55,21 +55,25 @@ public class MQFaultStrategy {
         this.sendLatencyFaultEnable = sendLatencyFaultEnable;
     }
 
+    // 选择消息队列
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
+        // 如果开启发送延迟故障
         if (this.sendLatencyFaultEnable) {
             try {
                 int index = tpInfo.getSendWhichQueue().getAndIncrement();
+                // 根据对消息队列进行轮询获取一个消息队列。
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
                     int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
                     if (pos < 0)
                         pos = 0;
                     MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
+                    // 验证该消息队列是否可用， latencyFaultTolerance.isAvailable(mq.getBrokerName())是关键。
                     if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
                         if (null == lastBrokerName || mq.getBrokerName().equals(lastBrokerName))
                             return mq;
                     }
                 }
-
+                // 如果返回的MessageQueue 可用， 移除latencyFaultTolerance 关于该topic 条目，表明该Broker 故障已经恢复。
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
                 int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
                 if (writeQueueNums > 0) {
@@ -88,7 +92,7 @@ public class MQFaultStrategy {
 
             return tpInfo.selectOneMessageQueue();
         }
-
+        // 如果没有开始发送延迟故障开关
         return tpInfo.selectOneMessageQueue(lastBrokerName);
     }
 

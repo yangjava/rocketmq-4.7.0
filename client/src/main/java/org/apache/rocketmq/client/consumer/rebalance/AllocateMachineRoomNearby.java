@@ -34,6 +34,7 @@ import org.apache.rocketmq.logging.InternalLogger;
  * should only be allocated to those. Otherwise, those message queues can be shared along all consumers since there are
  * no alive consumer to monopolize them.
  */
+// AllocateMessageQueueByMachineRoom策略的升级版本，不仅将Broker的消息队列分配给同机房的消费者，还会将剩下的消息队列根据给定的分配策略进行分配给消费者。
 public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();
 

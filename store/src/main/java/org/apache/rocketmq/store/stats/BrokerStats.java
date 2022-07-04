@@ -21,6 +21,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 
+// Broker统计
 public class BrokerStats {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
@@ -38,6 +39,7 @@ public class BrokerStats {
         this.defaultMessageStore = defaultMessageStore;
     }
 
+    // 每24小时打印昨天产生了多少消息，消费了多少消息的定时任务比较简单，就是将昨天消息的生产和消费的数量统计出来，然后把这两个指标打印出来。
     public void record() {
         this.msgPutTotalYesterdayMorning = this.msgPutTotalTodayMorning;
         this.msgGetTotalYesterdayMorning = this.msgGetTotalTodayMorning;

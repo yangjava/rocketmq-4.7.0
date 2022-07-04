@@ -32,10 +32,14 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 /**
  * Client Common configuration
  */
+// 客户端通用配置，包含生产者和消费者
 public class ClientConfig {
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
+    // NameServer地址
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
+    // 客户端IP,当客户端是生产者，这个就是生产者IP，当客户端是消费者，这个就是消费者IP
     private String clientIP = RemotingUtil.getLocalAddress();
+    // 实例名或者客户端名称，从rocketmq.client.name查找，默认是DEFAULT
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     protected String namespace;
@@ -44,15 +48,19 @@ public class ClientConfig {
     /**
      * Pulling topic information interval from the named server
      */
+    // 从NameServer拉去Broker信息。默认是30s
     private int pollNameServerInterval = 1000 * 30;
     /**
      * Heartbeat interval in microseconds with message broker
      */
+    // 心跳时间，默认是30s
     private int heartbeatBrokerInterval = 1000 * 30;
     /**
      * Offset persistent interval for consumer
      */
+    // 消费者位移持久化时间，默认是5s
     private int persistConsumerOffsetInterval = 1000 * 5;
+    // 当发生异常，默认延迟拉去消息时间，默认是1s
     private long pullTimeDelayMillsWhenException = 1000;
     private boolean unitMode = false;
     private String unitName;
@@ -62,6 +70,8 @@ public class ClientConfig {
 
     private LanguageCode language = LanguageCode.JAVA;
 
+    // clientId 为客户端IP+instance+(unitname 可选），如果在同一台物理服务器部署两个应用程序，应用程序岂不是clientId 相同，会造成混乱？
+    // 为了避免这个问题，如果instance 为默认值DEFAULT 的话，RocketMQ 会自动将instance 设置为进程ID，这样避免了不同进程的相互影响，但同一个NM 中的不同消费者和不同生产者在启动时获取到的MQC!ientlnstane 实例都是同一个。
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());

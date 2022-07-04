@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 /**
  * Consistent Hashing queue algorithm
  */
+// 一致性哈希负载策略，为每一个消费者创建多个虚拟的节点，将虚拟节点连成一个环，这个环就是一致性哈希环，然后将消息队列进行哈希计算得到哈希值，通过哈希值找到距离一致性哈希环顺时针方向最近的那个虚拟节点，此时就可以通过虚拟节点获取到真实的消费者了，就将这个消息队列分配给这个消息者。
 public class AllocateMessageQueueConsistentHash implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();
 

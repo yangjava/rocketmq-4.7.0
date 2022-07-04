@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 /**
  * Cycle average Hashing queue algorithm
  */
+// 循环平均负载策略，跟平均负载策略不同的是。是将消息队列一个一个的分配给消息者。假设一个topic有8个消息队列，有3个消息者A、B、C。采用循环平均负载策略分配的方法是首先给A、B、C分别分配一个，然后再进行第二轮分配，也是给A、B、C分别再分配一个，这样子还剩下两个就分别分配给A、B。
 public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();
 
@@ -51,8 +52,10 @@ public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQue
             return result;
         }
 
+        // 当前consumer排序后的索引
         int index = cidAll.indexOf(currentCID);
         for (int i = index; i < mqAll.size(); i++) {
+            // 取模
             if (i % cidAll.size() == index) {
                 result.add(mqAll.get(i));
             }

@@ -27,8 +27,12 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.MappedFile;
 
+
+// 消息消费队列是RocketMQ专门为消息订阅构建的索引文件，提高根据主题与消息队列检索消息的速度，另外RocketMQ引入了Hash索引机制为消息建立索引，
+// HashMap 的设计包含两个基本点：Hash 槽与Hash 冲突的链表结构。
 public class IndexFile {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    // Hash 槽， 一个IndexFile 默认包含500 万个Hash 槽，每个Hash 槽存储的是落在该Hash 槽的hashcode 最新的Index 的索引。
     private static int hashSlotSize = 4;
     private static int indexSize = 20;
     private static int invalidIndex = 0;
@@ -37,6 +41,7 @@ public class IndexFile {
     private final MappedFile mappedFile;
     private final FileChannel fileChannel;
     private final MappedByteBuffer mappedByteBuffer;
+    // IndexHeader 头部，包含40 个字节，记录该IndexFile 的统计信息
     private final IndexHeader indexHeader;
 
     public IndexFile(final String fileName, final int hashSlotNum, final int indexNum,

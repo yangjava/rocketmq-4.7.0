@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.UtilAll;
 
+// 消息客户端Id生成器
 public class MessageClientIDSetter {
     private static final String TOPIC_KEY_SPLITTER = "#";
     private static final int LEN;
@@ -30,6 +31,7 @@ public class MessageClientIDSetter {
     private static long startTime;
     private static long nextStartTime;
 
+    // FIX_STRING 的主要由：客户端的IP、进程ID、加载 MessageClientIDSetter 的类加载器的 hashcode。
     static {
         byte[] ip;
         try {
@@ -111,6 +113,7 @@ public class MessageClientIDSetter {
         return value & 0x0000FFFF;
     }
 
+    // 一个 uniqID 的构建主要分成两个部分：FIX_STRING 与唯一 ID 生成算法，顾名思义，FIX_STRING 就是一个客户端固定一个前缀
     public static String createUniqID() {
         StringBuilder sb = new StringBuilder(LEN * 2);
         sb.append(FIX_STRING);
@@ -118,6 +121,7 @@ public class MessageClientIDSetter {
         return sb.toString();
     }
 
+    // msgId 的唯一性算法由 MessageClientIDSetter 的createUniqIDBuffer 方法实现。msgId 的后半段主要由：当前时间与系统启动时间的差值，以及自增序号。
     private static byte[] createUniqIDBuffer() {
         ByteBuffer buffer = ByteBuffer.allocate(4 + 2);
         long current = System.currentTimeMillis();

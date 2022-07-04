@@ -24,10 +24,15 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 public class TopicPublishInfo {
+    // 是否有序
     private boolean orderTopic = false;
+    // 是否有topic路由信息
     private boolean haveTopicRouterInfo = false;
+    // 消息队列
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    // 消息队列索引
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
+    // 路由元数据
     private TopicRouteData topicRouteData;
 
     public boolean isOrderTopic() {
@@ -66,6 +71,7 @@ public class TopicPublishInfo {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
 
+    // 如果lastBrokerName不等于null，根据lastBrokerName找到消息队列，如果没有找到与lastBrokerName相等的消息队列的话，也是调用无入参的selectOneMessageQueue方法轮询随机获取消息队列。
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
             return selectOneMessageQueue();
@@ -84,6 +90,7 @@ public class TopicPublishInfo {
         }
     }
 
+    // 无入参的selectOneMessageQueue方法轮询随机获取消息队列
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.getAndIncrement();
         int pos = Math.abs(index) % this.messageQueueList.size();

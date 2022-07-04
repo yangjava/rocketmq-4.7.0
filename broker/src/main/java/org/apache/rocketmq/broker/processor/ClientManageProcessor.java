@@ -43,6 +43,7 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+// 客户端管理处理，主要包括：接收客户端心跳、去注册客户端、检查客户端配置，这里主要介绍接收客户端心跳的情况。
 public class ClientManageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;

@@ -40,6 +40,8 @@ public abstract class ReferenceResource {
         return this.available;
     }
 
+
+    // 关闭MappedFile。
     public void shutdown(final long intervalForcibly) {
         if (this.available) {
             this.available = false;
@@ -53,6 +55,7 @@ public abstract class ReferenceResource {
         }
     }
 
+    // 将引用次数减1，如果引用数小于等于0 ，则执行cleanup 方法
     public void release() {
         long value = this.refCount.decrementAndGet();
         if (value > 0)
@@ -70,6 +73,7 @@ public abstract class ReferenceResource {
 
     public abstract boolean cleanup(final long currentRef);
 
+    // 判断是否清理完成， 判断标准是引用次数小于等于0 并且cleanupOver 为true,cleanupOver 为true 的触发条件是release 成功将MappedByteBuffer 资源释放。
     public boolean isCleanupOver() {
         return this.refCount.get() <= 0 && this.cleanupOver;
     }

@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 /**
  * Push consumer
  */
+// MQ Push消费端
 public interface MQPushConsumer extends MQConsumer {
     /**
      * Start the consumer

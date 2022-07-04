@@ -214,9 +214,12 @@ public class MQClientAPIImpl {
 
     public String fetchNameServerAddr() {
         try {
+            // 通过http获取Name server地址
             String addrs = this.topAddressing.fetchNSAddr();
+            // 如果地址不为null，那么更新Name server地址
             if (addrs != null) {
                 if (!addrs.equals(this.nameSrvAddr)) {
+                    // 更新Name server  地址
                     log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + addrs);
                     this.updateNameServerAddressList(addrs);
                     this.nameSrvAddr = addrs;
@@ -229,6 +232,7 @@ public class MQClientAPIImpl {
         return nameSrvAddr;
     }
 
+    // 首先将入参addrs以“；”分割得到地址列表，然后通信客户端进行更新Name Server列表。
     public void updateNameServerAddressList(final String addrs) {
         String[] addrArray = addrs.split(";");
         List<String> list = Arrays.asList(addrArray);
@@ -447,9 +451,13 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
         RemotingCommand request = null;
+        // 消息类型
         String msgType = msg.getProperty(MessageConst.PROPERTY_MESSAGE_TYPE);
+        // 是否重试
         boolean isReply = msgType != null && msgType.equals(MixAll.REPLY_MESSAGE_FLAG);
+        // 发送消息请求头压缩
         if (isReply) {
+            // 消息更轻量
             if (sendSmartMsg) {
                 SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
                 request = RemotingCommand.createRequestCommand(RequestCode.SEND_REPLY_MESSAGE_V2, requestHeaderV2);
@@ -457,6 +465,7 @@ public class MQClientAPIImpl {
                 request = RemotingCommand.createRequestCommand(RequestCode.SEND_REPLY_MESSAGE, requestHeader);
             }
         } else {
+            // 消息轻量发送或批量消息
             if (sendSmartMsg || msg instanceof MessageBatch) {
                 SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
                 request = RemotingCommand.createRequestCommand(msg instanceof MessageBatch ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
@@ -467,20 +476,25 @@ public class MQClientAPIImpl {
         request.setBody(msg.getBody());
 
         switch (communicationMode) {
+            // 单向
             case ONEWAY:
                 this.remotingClient.invokeOneway(addr, request, timeoutMillis);
                 return null;
+            // 异步
             case ASYNC:
                 final AtomicInteger times = new AtomicInteger();
                 long costTimeAsync = System.currentTimeMillis() - beginStartTime;
+                // 超时
                 if (timeoutMillis < costTimeAsync) {
                     throw new RemotingTooMuchRequestException("sendMessage call timeout");
                 }
                 this.sendMessageAsync(addr, brokerName, msg, timeoutMillis - costTimeAsync, request, sendCallback, topicPublishInfo, instance,
                     retryTimesWhenSendFailed, times, context, producer);
                 return null;
+            // 同步发送消息
             case SYNC:
                 long costTimeSync = System.currentTimeMillis() - beginStartTime;
+                // 超时直接抛出异常
                 if (timeoutMillis < costTimeSync) {
                     throw new RemotingTooMuchRequestException("sendMessage call timeout");
                 }
@@ -493,6 +507,7 @@ public class MQClientAPIImpl {
         return null;
     }
 
+    // 同步发送
     private SendResult sendMessageSync(
         final String addr,
         final String brokerName,
@@ -500,8 +515,10 @@ public class MQClientAPIImpl {
         final long timeoutMillis,
         final RemotingCommand request
     ) throws RemotingException, MQBrokerException, InterruptedException {
+        // 发送同步消息
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
+        // 处理消息发送响应结果
         return this.processSendResponse(brokerName, msg, response);
     }
 
@@ -528,6 +545,7 @@ public class MQClientAPIImpl {
                 if (null == sendCallback && response != null) {
 
                     try {
+                        // 处理响应结果
                         SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
                         if (context != null && sendResult != null) {
                             context.setSendResult(sendResult);
@@ -535,7 +553,7 @@ public class MQClientAPIImpl {
                         }
                     } catch (Throwable e) {
                     }
-
+                    // 放入容错表中
                     producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), false);
                     return;
                 }
@@ -711,6 +729,7 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    // 在MQClientAPIImpl.pullMessage方法中，根据入参communicationMode的值分为异步拉取和同步拉取方式两种。
     public PullResult pullMessage(
         final String addr,
         final PullMessageRequestHeader requestHeader,
@@ -769,6 +788,7 @@ public class MQClientAPIImpl {
         });
     }
 
+    // 同步拉取消息
     private PullResult pullMessageSync(
         final String addr,
         final RemotingCommand request,
@@ -783,15 +803,19 @@ public class MQClientAPIImpl {
         final RemotingCommand response) throws MQBrokerException, RemotingCommandException {
         PullStatus pullStatus = PullStatus.NO_NEW_MSG;
         switch (response.getCode()) {
+            // 若RemotingCommand对象的Code等于SUCCESS，则PullResultExt.pullStatus=FOUND；
             case ResponseCode.SUCCESS:
                 pullStatus = PullStatus.FOUND;
                 break;
+            // 若RemotingCommand对象的Code等于PULL_NOT_FOUND，则PullResultExt.pullStatus= NO_NEW_MSG
             case ResponseCode.PULL_NOT_FOUND:
                 pullStatus = PullStatus.NO_NEW_MSG;
                 break;
+            // 若RemotingCommand对象的Code等于PULL_RETRY_IMMEDIATELY，则PullResultExt.pullStatus= NO_MATCHED_MSG
             case ResponseCode.PULL_RETRY_IMMEDIATELY:
                 pullStatus = PullStatus.NO_MATCHED_MSG;
                 break;
+            // 若RemotingCommand对象的Code等于PULL_OFFSET_MOVED，则PullResultExt.pullStatus= OFFSET_ILLEGAL
             case ResponseCode.PULL_OFFSET_MOVED:
                 pullStatus = PullStatus.OFFSET_ILLEGAL;
                 break;

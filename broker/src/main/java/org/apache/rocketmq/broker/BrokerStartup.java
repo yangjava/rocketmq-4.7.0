@@ -47,8 +47,8 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
+
 // Broker 主要负责消息的存储，投递和查询以及保证服务的高可用。Broker负责接收生产者发送的消息并存储、同时为消费者消费消息提供支持。
-//
 // 为了实现这些功能，Broker包含几个重要的子模块：
 // 通信模块：负责处理来自客户端（生产者、消费者）的请求。
 // 客户端管理模块:负责管理客户端（生产者、消费者）和维护消费者的Topic订阅信息。

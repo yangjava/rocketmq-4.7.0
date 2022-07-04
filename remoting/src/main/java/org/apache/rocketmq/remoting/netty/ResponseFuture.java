@@ -24,7 +24,9 @@ import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+// 请求结果
 public class ResponseFuture {
+    // 请求ID
     private final int opaque;
     private final Channel processChannel;
     private final long timeoutMillis;
@@ -36,6 +38,7 @@ public class ResponseFuture {
 
     private final AtomicBoolean executeCallbackOnlyOnce = new AtomicBoolean(false);
     private volatile RemotingCommand responseCommand;
+    // 请求结果
     private volatile boolean sendRequestOK = true;
     private volatile Throwable cause;
 
