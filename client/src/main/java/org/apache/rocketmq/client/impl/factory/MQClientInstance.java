@@ -332,6 +332,7 @@ public class MQClientInstance {
         return clientId;
     }
 
+    // 从NameServer更新Topic路由等信息
     public void updateTopicRouteInfoFromNameServer() {
         Set<String> topicList = new HashSet<String>();
 

@@ -809,6 +809,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         return response;
     }
 
+    // 获取生产者连接List
     private RemotingCommand getProducerConnectionList(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);

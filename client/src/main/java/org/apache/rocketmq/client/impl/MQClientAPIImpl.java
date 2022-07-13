@@ -1865,6 +1865,7 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+    // 获取消费端信息
     public ConsumerRunningInfo getConsumerRunningInfo(final String addr, String consumerGroup, String clientId,
         boolean jstack,
         final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
