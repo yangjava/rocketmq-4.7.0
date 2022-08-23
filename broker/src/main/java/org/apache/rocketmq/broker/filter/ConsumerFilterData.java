@@ -29,6 +29,7 @@ import java.util.Collections;
 /**
  * Filter data of consumer.
  */
+// 消费端过滤器
 public class ConsumerFilterData {
     // 消费组
     private String consumerGroup;

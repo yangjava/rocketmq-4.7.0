@@ -39,6 +39,7 @@ public class ConsumerManager {
     // 消费者Table
     private final ConcurrentMap<String/* Group */, ConsumerGroupInfo> consumerTable =
         new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
+    // 客户端ID变更
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener) {
@@ -97,6 +98,7 @@ public class ConsumerManager {
     }
 
     // 注册消费者
+    // 支持一个消费者订阅多个topic，需要保证组内的消费者订阅的topic都必须一致，否则就会出现订阅的topic被覆盖的情况。
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
         ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
         final Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable) {

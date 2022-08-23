@@ -51,18 +51,25 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 
+// Broker发送到客户端
 public class Broker2Client {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    // Broker控制器
     private final BrokerController brokerController;
 
     public Broker2Client(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 
+    // 检查生产者事务状态
     public void checkProducerTransactionState(
+        // 消费组
         final String group,
+        // 连接
         final Channel channel,
+        // 事务头
         final CheckTransactionStateRequestHeader requestHeader,
+        // 消息
         final MessageExt messageExt) throws Exception {
         // 检查事务状态请求头
         RemotingCommand request =
@@ -70,6 +77,7 @@ public class Broker2Client {
         //解码消息体
         request.setBody(MessageDecoder.encode(messageExt, false));
         try {
+            // 控制器发送oneway消息
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 10);
         } catch (Exception e) {
             log.error("Check transaction failed because invoke producer exception. group={}, msgId={}", group, messageExt.getMsgId(), e.getMessage());
@@ -82,6 +90,7 @@ public class Broker2Client {
         return this.brokerController.getRemotingServer().invokeSync(channel, request, 10000);
     }
 
+    //
     public void notifyConsumerIdsChanged(
         final Channel channel,
         final String consumerGroup) {
@@ -228,6 +237,7 @@ public class Broker2Client {
         return list;
     }
 
+    // 获取消费组状态
     public RemotingCommand getConsumeStatus(String topic, String group, String originClientId) {
         final RemotingCommand result = RemotingCommand.createResponseCommand(null);
 

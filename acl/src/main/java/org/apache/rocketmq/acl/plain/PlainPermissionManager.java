@@ -43,28 +43,35 @@ public class PlainPermissionManager {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
+    // 默认acl配置文件名称，默认值为conf/plain_acl.yml。
     private static final String DEFAULT_PLAIN_ACL_FILE = "/conf/plain_acl.yml";
 
+    // acl配置文件名称，默认为DEFAULT_PLAIN_ACL_FILE,可以通过系统参数-Drocketmq.acl.plain.file=fileName指定。
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     private String fileName = System.getProperty("rocketmq.acl.plain.file", DEFAULT_PLAIN_ACL_FILE);
 
+    // 解析出来的权限配置映射表，以用户名为键。
     private  Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
 
+    // 远程IP解析策略工厂，用于解析白名单IP地址。
     private  List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
 
     private RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
 
+    // 是否开启了文件监听，即自动监听plain_acl.yml文件，一旦该文件改变，可在不重启服务器的情况下自动生效。
     private boolean isWatchStart;
 
     private final DataVersion dataVersion = new DataVersion();
 
+    // 构造方法。
     public PlainPermissionManager() {
         load();
         watch();
     }
 
+    // 加载配置文件。
     public void load() {
 
         Map<String, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
@@ -381,6 +388,7 @@ public class PlainPermissionManager {
         return plainAccessResource;
     }
 
+    // 验证是否有权限访问待访问资源。
     public void validate(PlainAccessResource plainAccessResource) {
 
         // Check the global white remote addr

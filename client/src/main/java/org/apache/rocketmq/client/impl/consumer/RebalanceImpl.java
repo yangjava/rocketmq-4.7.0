@@ -40,15 +40,23 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
+// Topic是一个逻辑概念，Topic下可以划分多个Queue以增加Consumer消费的并行度。在一个Consumer Group内，Queue和Consumer之间的对应关系是一对多的关系：一个Queue最多只能分配给一个Consumer，一个Cosumer可以分配得到多个Queue
+// RebalanceService继承自ServiceThread，start方法会启动一个后台线程，确保每隔一段时间（默认20秒）会调用一次MQClientInstance的doRebalance方法。
 public abstract class RebalanceImpl {
     protected static final InternalLogger log = ClientLogger.getLog();
+    // Queue消费进度镜像
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
+    // DefaultMQXxxxConsumerImpl updateTopicSubscribeInfo时添加
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
         new ConcurrentHashMap<String, Set<MessageQueue>>();
+    // DefaultMQXxxxConsumerImpl subscript时会添加
     protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =
         new ConcurrentHashMap<String, SubscriptionData>();
+    // Consumer实例所在的ConsumerGroup
     protected String consumerGroup;
+    // 消息消费模式
     protected MessageModel messageModel;
+    // Queue分配策略，默认为AllocateMessageQueueAveragely
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
     protected MQClientInstance mQClientFactory;
 
@@ -215,11 +223,13 @@ public abstract class RebalanceImpl {
 
     // 负载均衡
     public void doRebalance(final boolean isOrder) {
+        // 轮训该实例订阅的所有topic，通过遍历subscriptionInner的值来获取topic信息，该属性内容会在客户端实例调用subscript时增加
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 try {
+                    // 根据topic调用rebalanceByTopic执行rebalance
                     this.rebalanceByTopic(topic, isOrder);
                 } catch (Throwable e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -238,6 +248,7 @@ public abstract class RebalanceImpl {
 
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
+            // 如果是广播模式，则从topicSubscribeInfoTable获取该topic下的所有Queue，用于后续更新。即广播模式，每个客户端都能收到topic下的所有q,为客户端分配的Queue集合为全量的集合。
             case BROADCASTING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 if (mqSet != null) {
@@ -255,8 +266,10 @@ public abstract class RebalanceImpl {
                 }
                 break;
             }
+            // 如果是集群模式，会获取topic下的所有Queue；从broker获取该topic下所有客户端id列表；排序后调用AllocateMessageAueueStrateg获得ConsumerGroup下该客户端应该分配到的Queue集合。即集群模式，每个客户端分到的q列表由AllocateMessageQueueStrategy来分配。
             case CLUSTERING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+                // 从broker查找该topic对应的客户端id列表
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -294,13 +307,14 @@ public abstract class RebalanceImpl {
                     if (allocateResult != null) {
                         allocateResultSet.addAll(allocateResult);
                     }
-
+                    // 获取该客户端所属的Queue集合后，调用updateProcessQueueTableInRebalance更新。
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
                             "rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, mqAllSize={}, cidAllSize={}, rebalanceResultSize={}, rebalanceResultSet={}",
                             strategy.getName(), consumerGroup, topic, this.mQClientFactory.getClientId(), mqSet.size(), cidAll.size(),
                             allocateResultSet.size(), allocateResultSet);
+                        // 执行完后，如果有发生变化，则调用messageQueueChanged交给子类具体处理。
                         this.messageQueueChanged(topic, mqSet, allocateResultSet);
                     }
                 }
@@ -311,6 +325,7 @@ public abstract class RebalanceImpl {
         }
     }
 
+    // 调用truncateMessageQueueNotMyTopic移除缓存中不是该实例处理的Queue。
     private void truncateMessageQueueNotMyTopic() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
 
