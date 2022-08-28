@@ -802,6 +802,7 @@ public class BrokerController {
         return subscriptionGroupManager;
     }
 
+    // shutdown实现
     public void shutdown() {
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.shutdown();

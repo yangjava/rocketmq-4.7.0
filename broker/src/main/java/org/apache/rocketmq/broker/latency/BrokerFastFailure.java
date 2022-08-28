@@ -28,8 +28,10 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
+// BrokerFastFailure Broker快速失败
 public class BrokerFastFailure {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    // Broker快速失败线程池
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "BrokerFastFailureScheduledThread"));
     private final BrokerController brokerController;
@@ -51,7 +53,9 @@ public class BrokerFastFailure {
         return null;
     }
 
+    // 开启线程池
     public void start() {
+        // 线程池
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -62,9 +66,12 @@ public class BrokerFastFailure {
         }, 1000, 10, TimeUnit.MILLISECONDS);
     }
 
+    // 清理过期的请求
     private void cleanExpiredRequest() {
+        // 如果OS刷页繁忙
         while (this.brokerController.getMessageStore().isOSPageCacheBusy()) {
             try {
+                // 并且线程池非空，清理线程
                 if (!this.brokerController.getSendThreadPoolQueue().isEmpty()) {
                     final Runnable runnable = this.brokerController.getSendThreadPoolQueue().poll(0, TimeUnit.SECONDS);
                     if (null == runnable) {
@@ -80,6 +87,7 @@ public class BrokerFastFailure {
             }
         }
 
+        // 清理过期的线程
         cleanExpiredRequestInQueue(this.brokerController.getSendThreadPoolQueue(),
             this.brokerController.getBrokerConfig().getWaitTimeMillsInSendQueue());
 

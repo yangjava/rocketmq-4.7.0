@@ -49,12 +49,14 @@ public class TopicConfigManager extends ConfigManager {
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
         new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
+    // 系统队列Topic
     private final Set<String> systemTopicList = new HashSet<String>();
     private transient BrokerController brokerController;
 
     public TopicConfigManager() {
     }
 
+    // Topic配置管理
     public TopicConfigManager(BrokerController brokerController) {
         this.brokerController = brokerController;
         {
@@ -126,10 +128,14 @@ public class TopicConfigManager extends ConfigManager {
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
+            // 如果Broker开启了消息轨迹跟踪(traceTopicEnable=true)时
+            // 如果Broker开启了消息轨迹跟踪(traceTopicEnable=true)时，会自动创建默认消息轨迹的topic路由信息，注意其读写队列数为1。
             if (this.brokerController.getBrokerConfig().isTraceTopicEnable()) {
+                // 会自动创建默认消息轨迹的topic路由信息
                 String topic = this.brokerController.getBrokerConfig().getMsgTraceTopicName();
                 TopicConfig topicConfig = new TopicConfig(topic);
                 this.systemTopicList.add(topic);
+                // 注意其读写队列数为1
                 topicConfig.setReadQueueNums(1);
                 topicConfig.setWriteQueueNums(1);
                 this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);

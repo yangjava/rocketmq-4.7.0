@@ -49,6 +49,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         this.init();
     }
 
+    // 订阅组管理初始化
     private void init() {
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();

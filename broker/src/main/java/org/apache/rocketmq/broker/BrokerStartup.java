@@ -146,7 +146,10 @@ public class BrokerStartup {
                 int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
             }
-
+            // 创建BrokerConfig
+            // 如果命令中包含字母c，则读取配置文件，将配置文件的内容设置到配置类中
+            //  如果命令行中存在命令参数为‘c’（c是configFile的缩写），那么就读取configFile文件的内容，
+            //  将configFile配置文件的配置项映射到BrokerConfig、NettyServerConfig、NettyClientConfig、MessageStoreConfig配置类中。
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
@@ -154,30 +157,35 @@ public class BrokerStartup {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     properties = new Properties();
                     properties.load(in);
-
+                    // 读取配置文件的中namesrv地址
                     properties2SystemEnv(properties);
+                    // 将配置文件中的配置项映射到配置类中去
                     MixAll.properties2Object(properties, brokerConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, nettyClientConfig);
                     MixAll.properties2Object(properties, messageStoreConfig);
-
+                    // 设置配置broker配置文件
                     BrokerPathConfigHelper.setBrokerConfigPath(file);
                     in.close();
                 }
             }
 
+            // 设置broker配置类
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
-
+            // 如果broker配置文件的rocketmqHome属性值为null，直接结束程序
+            // RocketmqHome是Borker相关配置保存的文件目录，如果为空则直接退出程序，启动Broker失败
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
                 System.exit(-2);
             }
-
+            // 如果name server服务器的地址不为null
             String namesrvAddr = brokerConfig.getNamesrvAddr();
             if (null != namesrvAddr) {
                 try {
+                    // namesrvAddr是以";"分割的多个地址
                     String[] addrArray = namesrvAddr.split(";");
                     for (String addr : addrArray) {
+                        // 每个地址是ip:port的形式，检测下是否形如ip:port的形式
                         RemotingUtil.string2SocketAddress(addr);
                     }
                 } catch (Exception e) {
@@ -188,12 +196,14 @@ public class BrokerStartup {
                 }
             }
 
+            // 设置BrokerId，broker master 的BrokerId设置为0,broker slave 设置为大于0的值
             switch (messageStoreConfig.getBrokerRole()) {
                 case ASYNC_MASTER:
                 case SYNC_MASTER:
                     brokerConfig.setBrokerId(MixAll.MASTER_ID);
                     break;
                 case SLAVE:
+                    //如果小于等于0，退出程序
                     if (brokerConfig.getBrokerId() <= 0) {
                         System.out.printf("Slave's brokerId must be > 0");
                         System.exit(-3);
@@ -215,6 +225,11 @@ public class BrokerStartup {
             lc.reset();
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/logback_broker.xml");
 
+            //printConfigItem 打印配置信息
+            // 先判断命令行参数是否包含字母‘p’（printConfigItem是我缩写），
+            // 如果包含字母‘p’，则打印配置信息，否则判断下命令行是否包含字母‘m’，
+            // 则打印被@ImportantField注解的配置属性，也就是重要的配置属性。
+            // 最后，不管命令行中是否存在字母‘p’或者字母‘m’，都打印配置信息。
             if (commandLine.hasOption('p')) {
                 InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
                 MixAll.printObjectProperties(console, brokerConfig);
@@ -222,6 +237,7 @@ public class BrokerStartup {
                 MixAll.printObjectProperties(console, nettyClientConfig);
                 MixAll.printObjectProperties(console, messageStoreConfig);
                 System.exit(0);
+                //printImportantConfig 打印重要配置信息
             } else if (commandLine.hasOption('m')) {
                 InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
                 MixAll.printObjectProperties(console, brokerConfig, true);
@@ -230,22 +246,26 @@ public class BrokerStartup {
                 MixAll.printObjectProperties(console, messageStoreConfig, true);
                 System.exit(0);
             }
-
+            // 打印配置信息
             log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
             MixAll.printObjectProperties(log, brokerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, nettyClientConfig);
             MixAll.printObjectProperties(log, messageStoreConfig);
 
+            // 创建并初始化Broker控制器
+            // 创建BrokerController（broker 控制器）
             final BrokerController controller = new BrokerController(
                 brokerConfig,
                 nettyServerConfig,
                 nettyClientConfig,
                 messageStoreConfig);
             // remember all configs to prevent discard
+            // 将所有的配置信息保存在内存
             controller.getConfiguration().registerConfig(properties);
-
+            // 用其initialize方法对BrokerController进行初始化
             boolean initResult = controller.initialize();
+            // 如果初始化失败，则退出
             if (!initResult) {
                 controller.shutdown();
                 System.exit(-3);

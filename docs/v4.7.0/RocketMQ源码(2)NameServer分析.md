@@ -633,3 +633,160 @@ private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> f
 ```
 
 RouteInfoManager类利用上面几个map缓存了Broker信息，topic相关信息、集群信息、消息过滤服务信息等，如果这些缓存的信息有变化，就是网这些map新增或删除缓存。这就是Name Server服务的路由信息管理。processRequest方法是如何处理路由信息管理的，具体实现可以阅读具体的代码，无非就是将不同的请求委托给RouteInfoManager的不同方法，RouteInfoManager的不同实现了上面缓存信息的管理。
+NameServer 路由实现类： org.apache.rocketmq.namesrv.routeinfo.RoutelnfoManager ， 在了解路由注册之前，我们首先看一下NameServer 到底存储哪些信息。
+
+```java
+public class RouteInfoManager {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    // NameServer 与 Broker 空闲时长，默认2分钟，在2分钟内 Nameserver 没有收到 Broker 的心跳包，则关闭该连接。
+    private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
+    //读写锁
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    // Topic,以及对应的队列信息 --消息发送时根据路由表进行负载均衡 。
+    private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    // 以BrokerName为单位的Broker集合(Broker基础信息，包含 brokerName、所属集群名称、主备 Broker地址。)
+    private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    // 集群以及属于该进群的Broker列表(根据一个集群名，获得对应的一组BrokerName的列表)
+    private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    // 存活的Broker地址列表 (NameServer 每次收到心跳包时会 替换该信息 )
+    private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    // Broker对应的Filter Server列表-消费端拉取消息用到
+    private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
+    ...省略...
+} 
+```
+
+* topicQueueTable: Topic 消息队列路由信息，消息发送时根据路由表进行负载均衡。
+* brokerAddrTable : Broker 基础信息， 包含brokerName 、所属集群名称、主备Broker地址。
+* clusterAddrTable: Broker 集群信息，存储集群中所有Broker 名称。
+* brokerLiveTable: Broker 状态信息。NameServer 每次收到心跳包时会替换该信息。
+* filterServerTable : Broker 上的FilterServer 列表，用于类模式消息过滤。
+
+
+RocketMQ 基于订阅发布机制， 一个Topic 拥有多个消息队列，一个Broker 为每一主题默认创建4 个读队列4 个写队列。多个Broker 组成一个集群， BrokerName 由相同的多台Broker组成Master-Slave 架构， brokerId 为0 代表Master ， 大于0 表示Slave 。BrokerLivelnfo 中的lastUpdateTimestamp 存储上次收到Broker 心跳包的时间。
+QueueData 属性解析:
+
+```java
+/**
+ * 队列信息
+ */
+public class QueueData implements Comparable<QueueData> {
+    // 队列所属的Broker名称
+    private String brokerName;
+    // 读队列数量 默认：16
+    private int readQueueNums;
+    // 写队列数量 默认：16
+    private int writeQueueNums;
+    // Topic的读写权限(2是写 4是读 6是读写)
+    private int perm;
+    /** 同步复制还是异步复制--对应TopicConfig.topicSysFlag
+     * {@link org.apache.rocketmq.common.sysflag.TopicSysFlag}
+     */
+    private int topicSynFlag;
+        ...省略...
+ }
+```
+
+map: topicQueueTable 数据格式demo(json)：
+
+```java
+{
+    "TopicTest":[
+        {
+            "brokerName":"broker-a",
+            "perm":6,
+            "readQueueNums":4,
+            "topicSynFlag":0,
+            "writeQueueNums":4
+        }
+    ]
+}
+```
+
+BrokerData 属性解析:
+
+```java
+/**
+ * broker的数据:Master与Slave 的对应关系通过指定相同的BrokerName，不同的BrokerId来定义，BrokerId为0 表示Master，非0表示Slave。
+ */
+public class BrokerData implements Comparable<BrokerData> {
+    // broker所属集群
+    private String cluster;
+    // brokerName
+    private String brokerName;
+    // 同一个brokerName下可以有一个Master和多个Slave,所以brokerAddrs是一个集合
+    // brokerld=0表示 Master，大于0表示从 Slave
+    private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
+    // 用于查找broker地址
+    private final Random random = new Random();
+    ...省略...
+ }
+```
+
+map: brokerAddrTable 数据格式demo(json)：
+
+```json
+{
+    "broker-a":{
+        "brokerAddrs":{
+            "0":"172.16.62.75:10911"
+        },
+        "brokerName":"broker-a",
+        "cluster":"DefaultCluster"
+    }
+}
+```
+
+BrokerLiveInfo 属性解析：
+
+```java
+/**
+ *  存放存活的Broker信息，当前存活的 Broker,该信息不是实时的，NameServer 每10S扫描一次所有的 broker,根据心跳包的时间得知 broker的状态，
+ *  该机制也是导致当一个 Broker 进程假死后，消息生产者无法立即感知，可能继续向其发送消息，导致失败（非高可用）
+ */
+class BrokerLiveInfo {
+    //最后一次更新时间
+    private long lastUpdateTimestamp;
+    //版本号信息
+    private DataVersion dataVersion;
+    //Netty的Channel
+    private Channel channel;
+    //HA Broker的地址 是Slave从Master拉取数据时链接的地址,由brokerIp2+HA端口构成
+    private String haServerAddr;
+    ...省略...
+ }
+```
+
+map: brokerLiveTable 数据格式demo(json)：
+
+```json
+ {
+    "172.16.62.75:10911":{
+        "channel":{
+            "active":true,
+            "inputShutdown":false,
+            "open":true,
+            "outputShutdown":false,
+            "registered":true,
+            "writable":true
+        },
+        "dataVersion":{
+            "counter":2,
+            "timestamp":1630907813571
+        },
+        "haServerAddr":"172.16.62.75:10912",
+        "lastUpdateTimestamp":1630907814074
+    }
+}
+```
+
+brokerAddrTable -Map 数据格式demo(json)
+
+```json
+{"DefaultCluster":["broker-a"]}
+```
+
+从RouteInfoManager维护的HashMap数据结构和QueueData、BrokerData、BrokerLiveInfo类属性得知,NameServer维护的信息既简单但极其重要。
+
+
+

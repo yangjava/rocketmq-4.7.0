@@ -22,11 +22,14 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
+// Topic校验逻辑
 public class TopicValidator {
 
+    // 正则表达式校验 数字字母%_-
     private static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
+    // 正则表达式编译
     private static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
+    // Topic最大长度
     private static final int TOPIC_MAX_LENGTH = 127;
 
     private static boolean regularExpressionMatcher(String origin, Pattern pattern) {
@@ -37,26 +40,31 @@ public class TopicValidator {
         return matcher.matches();
     }
 
+    // 校验Topic
     public static boolean validateTopic(String topic, RemotingCommand response) {
 
+        // Topic为空
         if (UtilAll.isBlank(topic)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("The specified topic is blank.");
             return false;
         }
 
+        // 不满足正则表达式
         if (!regularExpressionMatcher(topic, PATTERN)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("The specified topic contains illegal characters, allowing only " + VALID_PATTERN_STR);
             return false;
         }
 
+        // Topic长度问题
         if (topic.length() > TOPIC_MAX_LENGTH) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("The specified topic is longer than topic max length.");
             return false;
         }
 
+        // 和系统关键Topic重复
         //whether the same with system reserved keyword
         if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);

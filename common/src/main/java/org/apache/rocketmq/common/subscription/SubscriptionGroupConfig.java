@@ -19,8 +19,10 @@ package org.apache.rocketmq.common.subscription;
 
 import org.apache.rocketmq.common.MixAll;
 
+// 订阅组配置信息
 public class SubscriptionGroupConfig {
 
+    // 消费组名称
     private String groupName;
 
     private boolean consumeEnable = true;
