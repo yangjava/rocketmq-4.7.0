@@ -98,7 +98,7 @@ ROCKETMQ_HOME=D:\RocketMQ
 
 namesrv启动环境变量配置截图如下图所示：
 
-![NamesrvStartup](png\NamesrvStartup.png)
+![NamesrvStartup](png/NamesrvStartup.png)
 
 然后就可以启动namesrv了，启动的时候可以打断点进行跟踪namesrv启动的过程，启动成功以后控制台会显示如下信息：
 
@@ -116,7 +116,7 @@ ROCKETMQ_HOME=D:\RocketMQ;NAMESRV_ADDR=127.0.0.1:9876
 
 broker启动环境变量配置截图如下图所示：
 
-![BrokerStartup](\png\BrokerStartup.png)
+![BrokerStartup](png/BrokerStartup.png)
 
 当你看到控制台显示如下信息时，说明broker也启动成功了。
 
